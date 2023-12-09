@@ -34,7 +34,8 @@
 #define	GAP					              25
 
 #define	OBJETO_ALTURA		        0.4
-#define OBJETO_VELOCIDADE	      0.5
+#define OBJETO_VELOCIDADE	      5.5
+#define CAMERA_VELOCIDADE	      1.5
 #define OBJETO_ROTACAO		        5
 #define OBJETO_RAIO		          0.12
 #define EYE_ROTACAO			          1
@@ -57,7 +58,7 @@
 **************************************/
 
 typedef struct {
-  GLboolean   up,down,left,right;
+  GLboolean   up,down,left,right,moveCamaraLeft,moveCamaraRight;
 } Teclas;
 
 typedef struct {
@@ -75,6 +76,7 @@ typedef struct {
     GLfloat  dir_long;  // longitude olhar (esq-dir)
     GLfloat  dir_lat;   // latitude olhar	(cima-baixo)
     GLfloat  fov;
+    GLfloat vel;
 } Camera;
 
 typedef struct {
@@ -153,6 +155,7 @@ void init(void)
   estado.camera.dir_long = 0;
   estado.camera.dir_lat = 0;
   estado.camera.fov = 60;
+  estado.camera.vel = CAMERA_VELOCIDADE;
 
   estado.localViewer = 1;
   estado.vista[JANELA_TOP] = 0;
@@ -339,12 +342,21 @@ void setNavigateSubwindowCamera(Camera *cam, Objeto obj)
     if(estado.vista[JANELA_NAVIGATE])
     {
   */
-    cam->eye.x=obj.pos.x-1;
+
+    cam->eye.x = obj.pos.x - 1.5 * sin(cam->dir_long);
+    cam->eye.y = obj.pos.y + 0.2;
+    cam->eye.z = obj.pos.z - 1.5 * cos(cam->dir_long);
+
+    center.x = obj.pos.x;
+    center.y = obj.pos.y + 0.2;
+    center.z = obj.pos.z;
+
+    /* cam->eye.x=obj.pos.x-1;
     cam->eye.y=obj.pos.y+.2;
     cam->eye.z=obj.pos.z-1;
     center.x=obj.pos.x;
     center.y=obj.pos.y+.2;
-    center.z=obj.pos.z;
+    center.z=obj.pos.z; */
   /*
     }
     else
@@ -465,6 +477,7 @@ void timer(int value)
   GLuint curr = glutGet(GLUT_ELAPSED_TIME);
   // Calcula velocidade baseado no tempo passado
 	float velocidade= modelo.objeto.vel*(curr - modelo.prev )*0.001;
+  float velocidadeCamara= estado.camera.vel*(curr - modelo.prev )*0.001;
 
   glutTimerFunc(estado.timer, timer, 0);
   /* Acções do temporizador ...
@@ -473,20 +486,48 @@ void timer(int value)
 
   modelo.prev = curr;
 
-  if(estado.teclas.up)
+  if (estado.teclas.up)
   {
-    andar=GL_TRUE;
-	}
-	
-  if(estado.teclas.down){
-    andar=GL_TRUE;
-	}
+    modelo.objeto.pos.z += velocidade/*  * cos(RAD(estado.camera.dir_long)) */;
+    /* modelo.objeto.pos.x += velocidade * sin(RAD(estado.camera.dir_long)); */
+  }
+
+  if (estado.teclas.down)
+  {
+    modelo.objeto.pos.z -= velocidade/*  * cos(RAD(estado.camera.dir_long)) */;
+    /* modelo.objeto.pos.x -= velocidade * sin(RAD(estado.camera.dir_long)); */
+  }
 	
   if(estado.teclas.left){
     // rodar camara e objeto
+    if(modelo.objeto.pos.x < 5){
+      modelo.objeto.pos.x += 5;
+      estado.teclas.left = GL_FALSE;
+    }
+    printf("POSICAO = ", modelo.objeto.pos.x, "\n");
+    /* modelo.objeto.dir += OBJETO_ROTACAO;
+    estado.camera.dir_long = modelo.objeto.dir; */
   }
 	if(estado.teclas.right){
     // rodar camara e objeto
+    if(modelo.objeto.pos.x > -5){
+      modelo.objeto.pos.x -= 5;
+      estado.teclas.right = GL_FALSE;
+    }
+    printf("POSICAO = ", modelo.objeto.pos.x, "\n");
+    /* modelo.objeto.dir -= OBJETO_ROTACAO;
+    estado.camera.dir_long = modelo.objeto.dir; */
+	}
+
+  if(estado.teclas.moveCamaraLeft){
+    // rodar camara e objeto
+    /* modelo.objeto.dir += OBJETO_ROTACAO; */
+    estado.camera.dir_long += velocidadeCamara * EYE_ROTACAO;
+  }
+	if(estado.teclas.moveCamaraRight){
+    // rodar camara e objeto
+    /* modelo.objeto.dir -= OBJETO_ROTACAO; */
+    estado.camera.dir_long -= velocidadeCamara * EYE_ROTACAO;
 	}
 
   redisplayAll();
@@ -553,6 +594,14 @@ void key(unsigned char key, int x, int y)
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             glEnable(GL_TEXTURE_2D);
             break;
+    case 'a':
+    case 'A':
+            estado.teclas.moveCamaraLeft = GL_TRUE;
+            break;
+    case 'd':
+    case 'D':
+            estado.teclas.moveCamaraRight = GL_TRUE;
+            break;
 	}
 
   if (DEBUG)
@@ -562,6 +611,16 @@ void key(unsigned char key, int x, int y)
 /* Callback para interação via teclado (largar a tecla) */
 void keyUp(unsigned char key, int x, int y)
 {
+  switch (key) {
+    case 'a':
+    case 'A': 
+            estado.teclas.moveCamaraLeft =GL_FALSE;
+            break;
+    case 'd':
+    case 'D': 
+            estado.teclas.moveCamaraRight =GL_FALSE;
+            break;
+  }
   if (DEBUG)
     printf("Largou a tecla %c\n", key);
 }
@@ -697,6 +756,7 @@ int main(int argc, char **argv)
 
   glutTimerFunc(estado.timer, timer, 0);
   glutKeyboardFunc(key);
+  glutKeyboardUpFunc(keyUp);
   glutSpecialFunc(specialKey);
   glutSpecialUpFunc(specialKeyUp);
 
@@ -713,6 +773,7 @@ int main(int argc, char **argv)
 
   glutTimerFunc(estado.timer, timer, 0);
   glutKeyboardFunc(key);
+  glutKeyboardUpFunc(keyUp);
   glutSpecialFunc(specialKey);
   glutSpecialUpFunc(specialKeyUp);
 
@@ -731,6 +792,7 @@ int main(int argc, char **argv)
 
   glutTimerFunc(estado.timer, timer, 0);
   glutKeyboardFunc(key);
+  glutKeyboardUpFunc(keyUp);
   glutSpecialFunc(specialKey);
   glutSpecialUpFunc(specialKeyUp);
 
