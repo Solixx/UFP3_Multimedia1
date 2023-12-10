@@ -103,6 +103,29 @@ typedef struct {
 Estado estado;
 Modelo modelo;
 
+GLMmodel* pmodel = NULL;
+GLboolean world_draw = GL_TRUE;
+
+
+
+
+drawmodel(void)
+{
+    if (!pmodel) {
+        pmodel = glmReadOBJ("data/sonic-hd/source/sonic-fbx/sonic.obj");
+        if (!pmodel) exit(0);
+        glmUnitize(pmodel);
+        glmFacetNormals(pmodel);
+        glmVertexNormals(pmodel, 90.0);
+    }
+    
+    glPushMatrix();
+        glTranslatef(0,OBJETO_ALTURA*1.20,0);
+        glRotatef(270+GRAUS(estado.camera.dir_long-modelo.objeto.dir),0,1,0);
+        glmDraw(pmodel, GLM_SMOOTH | GLM_MATERIAL);
+    glPopMatrix();
+    
+}
 
 /**************************************
 ******* ILUMINAÇÃO E MATERIAIS ********
@@ -344,11 +367,11 @@ void setNavigateSubwindowCamera(Camera *cam, Objeto obj)
   */
 
     cam->eye.x = obj.pos.x - 1.5 * sin(cam->dir_long);
-    cam->eye.y = obj.pos.y + 0.2;
-    cam->eye.z = obj.pos.z - 1.5 * cos(cam->dir_long);
+    cam->eye.y = obj.pos.y + 2.5;
+    cam->eye.z = obj.pos.z - 3 * cos(cam->dir_long);
 
     center.x = obj.pos.x;
-    center.y = obj.pos.y + 0.2;
+    center.y = obj.pos.y + 1;
     center.z = obj.pos.z;
 
     /* cam->eye.x=obj.pos.x-1;
@@ -393,7 +416,8 @@ void displayNavigateSubwindow()
           GLfloat light_pos[] = { 0.0, 2.0, -1.0, 0.0 };
           glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
 
-          desenhaModelo();  
+          /* desenhaModelo();   */
+          drawmodel();
 
         glPopMatrix();      
         
