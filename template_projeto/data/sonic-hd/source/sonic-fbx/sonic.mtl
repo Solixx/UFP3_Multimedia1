@@ -1,0 +1,40 @@
+# 
+# Wavefront material file
+# Created with Kaydara FBX
+# 
+
+newmtl Material__131
+map_Kd sonic_body_texture_by_tomothys_d5hhp2h-pre.jpg
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.020000 0.020000 0.020000
+illum 2
+Ns 0.010000
+Tr 1.000000
+
+newmtl Material__132
+map_Kd chr_sonic_shoes_dif_HD.png
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.020000 0.020000 0.020000
+illum 2
+Ns 0.010000
+Tr 1.000000
+
+newmtl Material__133
+map_Kd d636zef-7c753c88-4923-47fd-91b2-3d953ffca2ab.png
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.020000 0.020000 0.020000
+illum 2
+Ns 0.010000
+Tr 1.000000
+
+newmtl Material__134
+map_Kd offical_sonic_the_hedgehog_eye_texture_by_jaysonjeanchannel_d9fz1q0-pre.jpg
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.020000 0.020000 0.020000
+illum 2
+Ns 0.010000
+Tr 1.000000

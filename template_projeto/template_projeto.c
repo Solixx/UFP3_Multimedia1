@@ -34,15 +34,24 @@
 #define	GAP					              25
 
 #define	OBJETO_ALTURA		        0.4
-#define OBJETO_VELOCIDADE	      0.5
+#define OBJETO_VELOCIDADE	      5.5
+#define CAMERA_VELOCIDADE	      1.5
 #define OBJETO_ROTACAO		        5
 #define OBJETO_RAIO		          0.12
 #define EYE_ROTACAO			          1
 
-#define NOME_TEXTURA_CHAO         "data/Chao.ppm"
+#define NOME_TEXTURA_CHAO         "data/relva.ppm"
+#define NOME_TEXTURA_SONIC         "data/sonic-hd/source/sonic-fbx/chr_sonic_shoes_dif_HD.ppm"
+#define NOME_TEXTURA_SONIC2         "data/sonic-hd/source/sonic-fbx/d636zef-7c753c88-4923-47fd-91b2-3d953ffca2ab.ppm"
+#define NOME_TEXTURA_SONIC3         "data/sonic-hd/source/sonic-fbx/offical_sonic_the_hedgehog_eye_texture_by_jaysonjeanchannel_d9fz1q0-pre.ppm"
+#define NOME_TEXTURA_SONIC4         "data/sonic-hd/source/sonic-fbx/sonic_body_texture_by_tomothys_d5hhp2h-pre.ppm"
 
-#define NUM_TEXTURAS              1
+#define NUM_TEXTURAS              5
 #define ID_TEXTURA_CHAO           0
+#define ID_TEXTURA_SONIC           1
+#define ID_TEXTURA_SONIC2           2
+#define ID_TEXTURA_SONIC3           3
+#define ID_TEXTURA_SONIC4           4
 
 #define	CHAO_DIMENSAO		          10
 
@@ -57,7 +66,7 @@
 **************************************/
 
 typedef struct {
-  GLboolean   up,down,left,right;
+  GLboolean   up,down,left,right,moveCamaraLeft,moveCamaraRight;
 } Teclas;
 
 typedef struct {
@@ -75,6 +84,7 @@ typedef struct {
     GLfloat  dir_long;  // longitude olhar (esq-dir)
     GLfloat  dir_lat;   // latitude olhar	(cima-baixo)
     GLfloat  fov;
+    GLfloat vel;
 } Camera;
 
 typedef struct {
@@ -101,6 +111,44 @@ typedef struct {
 Estado estado;
 Modelo modelo;
 
+GLMmodel* pmodel = NULL;
+GLboolean world_draw = GL_TRUE;
+
+/* int numGrounds = 3; */
+int maxZ = 10;
+int minZ = -10;
+
+
+
+drawmodel(GLuint texID[])
+{
+    if (!pmodel) {
+        pmodel = glmReadOBJ("data/sonic-hd/source/sonic-fbx/sonic.obj");
+        if (!pmodel) exit(0);
+        glmUnitize(pmodel);
+        glmFacetNormals(pmodel);
+        glmVertexNormals(pmodel, 90.0);
+    }
+    
+    glPushMatrix();
+
+        glTranslatef(0,OBJETO_ALTURA*1.20,0);
+        glRotatef(270+GRAUS(estado.camera.dir_long),0,1,0);
+
+        GLfloat cor_branco[] = {1.0, 1.0, 1.0, 1.0};
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cor_branco);
+        /* glColor3f(1, 1, 1); */
+
+        /* glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC]);
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC2]);
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC3]); */
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC4]);
+
+        glmDraw(pmodel, GLM_SMOOTH | GLM_MATERIAL | GLM_TEXTURE);
+
+    glPopMatrix();
+    
+}
 
 /**************************************
 ******* ILUMINAÇÃO E MATERIAIS ********
@@ -153,6 +201,7 @@ void init(void)
   estado.camera.dir_long = 0;
   estado.camera.dir_lat = 0;
   estado.camera.fov = 60;
+  estado.camera.vel = CAMERA_VELOCIDADE;
 
   estado.localViewer = 1;
   estado.vista[JANELA_TOP] = 0;
@@ -281,14 +330,20 @@ void desenhaAngVisao(Camera *cam)
 
 void desenhaModelo()
 {
-    glColor3f(0,1,0);
+    glDisable(GL_TEXTURE_2D);
+    /* glColor3f(0,1,0); */
+    GLfloat cor_verde[] = {0.0, 1.0, 0.0, 1.0};
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cor_verde);
     glutSolidCube(OBJETO_ALTURA);
     glPushMatrix();
-        glColor3f(1,0,0);
+        /* glColor3f(1,0,0); */
+        GLfloat cor_vermelha[] = {1.0, 0.0, 0.0, 1.0};
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cor_vermelha);
         glTranslatef(0,OBJETO_ALTURA*0.75,0);
-        glRotatef(GRAUS(estado.camera.dir_long-modelo.objeto.dir),0,1,0);
+        /* glRotatef(GRAUS(estado.camera.dir_long-modelo.objeto.dir),0,1,0); */
         glutSolidCube(OBJETO_ALTURA*0.5);
     glPopMatrix();
+    glEnable(GL_TEXTURE_2D);
 }
 
 void desenhaChao(GLfloat dimensao, GLuint texID)
@@ -339,12 +394,21 @@ void setNavigateSubwindowCamera(Camera *cam, Objeto obj)
     if(estado.vista[JANELA_NAVIGATE])
     {
   */
-    cam->eye.x=obj.pos.x-1;
+
+    cam->eye.x = obj.pos.x - 1.5 * sin(cam->dir_long);
+    cam->eye.y = obj.pos.y + 2.5;
+    cam->eye.z = obj.pos.z - 3 * cos(cam->dir_long);
+
+    center.x = obj.pos.x;
+    center.y = obj.pos.y + 1;
+    center.z = obj.pos.z;
+
+    /* cam->eye.x=obj.pos.x-1;
     cam->eye.y=obj.pos.y+.2;
     cam->eye.z=obj.pos.z-1;
     center.x=obj.pos.x;
     center.y=obj.pos.y+.2;
-    center.z=obj.pos.z;
+    center.z=obj.pos.z; */
   /*
     }
     else
@@ -358,22 +422,41 @@ void setNavigateSubwindowCamera(Camera *cam, Objeto obj)
 
 void displayNavigateSubwindow()
 {
-  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+  glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	glLoadIdentity();
 
 	setNavigateSubwindowCamera(&estado.camera, modelo.objeto);
-  //setLight();
+  setLight();
 
-	glCallList(modelo.mapa[JANELA_NAVIGATE]);
-	glCallList(modelo.chao[JANELA_NAVIGATE]);
+	/* glCallList(modelo.mapa[JANELA_NAVIGATE]);
+	glCallList(modelo.chao[JANELA_NAVIGATE]); */
+
+   /* for(int i = 0; i < 3; i++){
+        glPushMatrix();		
+            glTranslatef(0,0,-CHAO_DIMENSAO+(CHAO_DIMENSAO*i));
+            glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+            glRotatef(90,0,1,0);
+            desenhaChao(CHAO_DIMENSAO,modelo.texID[JANELA_TOP][ID_TEXTURA_CHAO]);
+            
+        glPopMatrix();
+    } */
+
+    for(int i = 0; i < 4; i++){
+        glPushMatrix();		
+            glTranslatef(0,0,minZ-CHAO_DIMENSAO+(CHAO_DIMENSAO*i));
+            glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+            glRotatef(90,0,1,0);
+            desenhaChao(CHAO_DIMENSAO,modelo.texID[JANELA_TOP][ID_TEXTURA_CHAO]);
+            
+        glPopMatrix();
+    }
 
 	if(!estado.vista[JANELA_NAVIGATE])
   {
     glPushMatrix();
-        glTranslatef(modelo.objeto.pos.x,modelo.objeto.pos.y+0.3,modelo.objeto.pos.z);
-        glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+        glTranslatef(0,0.3,0);
         glRotatef(90,0,1,0);
         
         glEnable(GL_LIGHTING);
@@ -382,6 +465,24 @@ void displayNavigateSubwindow()
           glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
 
           desenhaModelo();  
+
+        glPopMatrix();      
+        
+        glDisable(GL_LIGHTING);
+        
+    glPopMatrix();
+
+    glPushMatrix();
+        glTranslatef(modelo.objeto.pos.x,modelo.objeto.pos.y+0.3,modelo.objeto.pos.z);
+        glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+        glRotatef(90,0,1,0);
+        
+        glEnable(GL_LIGHTING);
+        glPushMatrix();
+          /* GLfloat light_pos[] = { 0.0, 2.0, -1.0, 0.0 }; */
+          glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+
+          drawmodel(modelo.texID[JANELA_NAVIGATE]);
 
         glPopMatrix();      
         
@@ -409,22 +510,42 @@ void setTopSubwindowCamera(Camera *cam, Objeto obj)
 
 void displayTopSubwindow()
 {
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
     glLoadIdentity();
     setTopSubwindowCamera(&estado.camera,modelo.objeto);
     setLight();
 
-	glCallList(modelo.mapa[JANELA_TOP]);
+/* 	glCallList(modelo.mapa[JANELA_TOP]);
 	glCallList(modelo.chao[JANELA_TOP]);
 	
     glPushMatrix();		
-        glTranslatef(modelo.objeto.pos.x,modelo.objeto.pos.y,modelo.objeto.pos.z);
+        glTranslatef(0,0,0);
         glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
         glRotatef(90,0,1,0);
         
-    glPopMatrix();
+    glPopMatrix(); */
+
+    /* for(int i = 0; i < numGrounds; i++){
+        glPushMatrix();		
+            glTranslatef(0,0,-CHAO_DIMENSAO+(CHAO_DIMENSAO*i));
+            glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+            glRotatef(90,0,1,0);
+            desenhaChao(CHAO_DIMENSAO,modelo.texID[JANELA_TOP][ID_TEXTURA_CHAO]);
+            
+        glPopMatrix();
+    } */
+
+    
+    for(int i = 0; i < 4; i++){
+        glPushMatrix();		
+            glTranslatef(0,0,minZ-CHAO_DIMENSAO+(CHAO_DIMENSAO*i));
+            glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+            glRotatef(90,0,1,0);
+            desenhaChao(CHAO_DIMENSAO,modelo.texID[JANELA_TOP][ID_TEXTURA_CHAO]);
+        glPopMatrix();
+    }
 
 	desenhaAngVisao(&estado.camera);
 	
@@ -465,6 +586,7 @@ void timer(int value)
   GLuint curr = glutGet(GLUT_ELAPSED_TIME);
   // Calcula velocidade baseado no tempo passado
 	float velocidade= modelo.objeto.vel*(curr - modelo.prev )*0.001;
+  float velocidadeCamara= estado.camera.vel*(curr - modelo.prev )*0.001;
 
   glutTimerFunc(estado.timer, timer, 0);
   /* Acções do temporizador ...
@@ -473,21 +595,61 @@ void timer(int value)
 
   modelo.prev = curr;
 
-  if(estado.teclas.up)
+  if (estado.teclas.up)
   {
-    andar=GL_TRUE;
-	}
-	
-  if(estado.teclas.down){
-    andar=GL_TRUE;
-	}
+    modelo.objeto.pos.z += velocidade/*  * cos(RAD(estado.camera.dir_long)) */;
+    /* modelo.objeto.pos.x += velocidade * sin(RAD(estado.camera.dir_long)); */
+  }
+
+  if (estado.teclas.down)
+  {
+    if(modelo.objeto.pos.z > -5){
+      modelo.objeto.pos.z -= velocidade/*  * cos(RAD(estado.camera.dir_long)) */;
+      /* modelo.objeto.pos.x -= velocidade * sin(RAD(estado.camera.dir_long)); */
+    }
+  }
 	
   if(estado.teclas.left){
     // rodar camara e objeto
+    if(modelo.objeto.pos.x < 5){
+      modelo.objeto.pos.x += 5;
+      estado.teclas.left = GL_FALSE;
+    }
+    /* modelo.objeto.dir += OBJETO_ROTACAO;
+    estado.camera.dir_long = modelo.objeto.dir; */
   }
 	if(estado.teclas.right){
     // rodar camara e objeto
+    if(modelo.objeto.pos.x > -5){
+      modelo.objeto.pos.x -= 5;
+      estado.teclas.right = GL_FALSE;
+    }
+    /* modelo.objeto.dir -= OBJETO_ROTACAO;
+    estado.camera.dir_long = modelo.objeto.dir; */
 	}
+
+  if(estado.teclas.moveCamaraLeft){
+    // rodar camara e objeto
+    /* modelo.objeto.dir += OBJETO_ROTACAO; */
+    estado.camera.dir_long += velocidadeCamara * EYE_ROTACAO;
+  }
+	if(estado.teclas.moveCamaraRight){
+    // rodar camara e objeto
+    /* modelo.objeto.dir -= OBJETO_ROTACAO; */
+    estado.camera.dir_long -= velocidadeCamara * EYE_ROTACAO;
+	}
+
+  if(((int)(modelo.objeto.pos.z) % 10 == 0) && (int)(modelo.objeto.pos.z) >= maxZ){
+    /* numGrounds++; */
+    maxZ += CHAO_DIMENSAO;
+    minZ += CHAO_DIMENSAO;
+  }
+
+  if(((int)(modelo.objeto.pos.z) % 10 == 0) && (int)(modelo.objeto.pos.z) <= minZ){
+    /* numGrounds++; */
+    minZ -= CHAO_DIMENSAO;
+    maxZ -= CHAO_DIMENSAO;
+  }
 
   redisplayAll();
 }
@@ -553,6 +715,14 @@ void key(unsigned char key, int x, int y)
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             glEnable(GL_TEXTURE_2D);
             break;
+    case 'a':
+    case 'A':
+            estado.teclas.moveCamaraLeft = GL_TRUE;
+            break;
+    case 'd':
+    case 'D':
+            estado.teclas.moveCamaraRight = GL_TRUE;
+            break;
 	}
 
   if (DEBUG)
@@ -562,6 +732,16 @@ void key(unsigned char key, int x, int y)
 /* Callback para interação via teclado (largar a tecla) */
 void keyUp(unsigned char key, int x, int y)
 {
+  switch (key) {
+    case 'a':
+    case 'A': 
+            estado.teclas.moveCamaraLeft =GL_FALSE;
+            break;
+    case 'd':
+    case 'D': 
+            estado.teclas.moveCamaraRight =GL_FALSE;
+            break;
+  }
   if (DEBUG)
     printf("Largou a tecla %c\n", key);
 }
@@ -653,8 +833,8 @@ void specialKeyUp(int key, int x, int y)
 
 void createTextures(GLuint texID[])
 {
-    unsigned char *image = NULL;
-    int w, h, bpp;
+    unsigned char *image, *sonic, *sonic2, *sonic3, *sonic4 = NULL;
+    int w, h, bpp, ws, hs, ws2, hs2, ws3, hs3, ws4, hs4;
 
     glGenTextures(NUM_TEXTURAS,texID);
 
@@ -670,6 +850,58 @@ void createTextures(GLuint texID[])
         gluBuild2DMipmaps(GL_TEXTURE_2D, 3, w, h, GL_RGB, GL_UNSIGNED_BYTE, image);
     }else{
         printf("Textura %s não encontrada \n",NOME_TEXTURA_CHAO);
+        exit(0);
+    }
+
+    sonic = glmReadPPM(NOME_TEXTURA_SONIC, &ws, &hs);
+    if(sonic)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST );
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, ws, hs, GL_RGB, GL_UNSIGNED_BYTE, sonic);
+    }else{
+        printf("Textura %s não encontrada \n",NOME_TEXTURA_SONIC);
+        exit(0);
+    }
+
+    sonic2 = glmReadPPM(NOME_TEXTURA_SONIC2, &ws2, &hs2);
+    if(sonic2)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC2]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST );
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, ws2, hs2, GL_RGB, GL_UNSIGNED_BYTE, sonic2);
+    }else{
+        printf("Textura %s não encontrada \n",NOME_TEXTURA_SONIC2);
+        exit(0);
+    }
+
+    sonic3 = glmReadPPM(NOME_TEXTURA_SONIC3, &ws3, &hs3);
+    if(sonic3)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC3]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST );
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, ws3, hs3, GL_RGB, GL_UNSIGNED_BYTE, sonic3);
+    }else{
+        printf("Textura %s não encontrada \n",NOME_TEXTURA_SONIC3);
+        exit(0);
+    }
+
+    sonic4 = glmReadPPM(NOME_TEXTURA_SONIC4, &ws4, &hs4);
+    if(sonic4)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC4]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST );
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, ws4, hs4, GL_RGB, GL_UNSIGNED_BYTE, sonic4);
+    }else{
+        printf("Textura %s não encontrada \n",NOME_TEXTURA_SONIC4);
         exit(0);
     }
 
@@ -697,6 +929,7 @@ int main(int argc, char **argv)
 
   glutTimerFunc(estado.timer, timer, 0);
   glutKeyboardFunc(key);
+  glutKeyboardUpFunc(keyUp);
   glutSpecialFunc(specialKey);
   glutSpecialUpFunc(specialKeyUp);
 
@@ -713,6 +946,7 @@ int main(int argc, char **argv)
 
   glutTimerFunc(estado.timer, timer, 0);
   glutKeyboardFunc(key);
+  glutKeyboardUpFunc(keyUp);
   glutSpecialFunc(specialKey);
   glutSpecialUpFunc(specialKeyUp);
 
@@ -731,6 +965,7 @@ int main(int argc, char **argv)
 
   glutTimerFunc(estado.timer, timer, 0);
   glutKeyboardFunc(key);
+  glutKeyboardUpFunc(keyUp);
   glutSpecialFunc(specialKey);
   glutSpecialUpFunc(specialKeyUp);
 

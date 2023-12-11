@@ -1,0 +1,61 @@
+newmtl blinn1SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd grads_texture.png
+Ni 1.00
+Ks 1.00 1.00 1.00
+newmtl lambert4SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.36 0.36 0.36
+Tf 1.00 1.00 1.00
+map_Kd main_textures.png
+Ni 1.00
+newmtl lambert5SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 0.79 0.79 0.79
+map_Kd grads_texture.png
+Ni 1.00
+newmtl lambert11SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.48 0.48 0.48
+Tf 1.00 1.00 1.00
+map_Kd grass_stripes.png
+bump  -bm 1 grass_normal.png
+Ni 1.00
+newmtl lambert12SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.48 0.48 0.48
+Tf 1.00 1.00 1.00
+map_Kd grads_texture.png
+Ni 1.00
+newmtl lambert17SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.51 0.51 0.51
+Tf 1.00 1.00 1.00
+map_Kd side_grass_02.png
+Ni 1.00
+newmtl lambert18SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 1.00 1.00 1.00
+Tf 1.00 1.00 1.00
+map_Kd full_set.png
+Ni 1.00
+newmtl phong1SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.42 0.42 0.42
+Tf 1.00 1.00 1.00
+map_Kd wall_diffuse.png
+bump  -bm 1 wall_normal.png
+Ni 1.00
+Ks 0.00 0.00 0.00
+Ns 22.91
