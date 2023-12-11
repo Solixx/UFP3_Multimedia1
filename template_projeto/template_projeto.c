@@ -40,10 +40,18 @@
 #define OBJETO_RAIO		          0.12
 #define EYE_ROTACAO			          1
 
-#define NOME_TEXTURA_CHAO         "data/Chao.ppm"
+#define NOME_TEXTURA_CHAO         "data/relva.ppm"
+#define NOME_TEXTURA_SONIC         "data/sonic-hd/source/sonic-fbx/chr_sonic_shoes_dif_HD.ppm"
+#define NOME_TEXTURA_SONIC2         "data/sonic-hd/source/sonic-fbx/d636zef-7c753c88-4923-47fd-91b2-3d953ffca2ab.ppm"
+#define NOME_TEXTURA_SONIC3         "data/sonic-hd/source/sonic-fbx/offical_sonic_the_hedgehog_eye_texture_by_jaysonjeanchannel_d9fz1q0-pre.ppm"
+#define NOME_TEXTURA_SONIC4         "data/sonic-hd/source/sonic-fbx/sonic_body_texture_by_tomothys_d5hhp2h-pre.ppm"
 
-#define NUM_TEXTURAS              1
+#define NUM_TEXTURAS              5
 #define ID_TEXTURA_CHAO           0
+#define ID_TEXTURA_SONIC           1
+#define ID_TEXTURA_SONIC2           2
+#define ID_TEXTURA_SONIC3           3
+#define ID_TEXTURA_SONIC4           4
 
 #define	CHAO_DIMENSAO		          10
 
@@ -109,7 +117,7 @@ GLboolean world_draw = GL_TRUE;
 
 
 
-drawmodel(void)
+drawmodel(GLuint texID[])
 {
     if (!pmodel) {
         pmodel = glmReadOBJ("data/sonic-hd/source/sonic-fbx/sonic.obj");
@@ -122,7 +130,18 @@ drawmodel(void)
     glPushMatrix();
         glTranslatef(0,OBJETO_ALTURA*1.20,0);
         glRotatef(270+GRAUS(estado.camera.dir_long-modelo.objeto.dir),0,1,0);
-        glmDraw(pmodel, GLM_SMOOTH | GLM_MATERIAL);
+
+        GLfloat cor_branco[] = {1.0, 1.0, 1.0, 1.0};
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cor_branco);
+        /* glColor3f(1, 1, 1); */
+
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC]);
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC2]);
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC3]);
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC4]);
+
+        glmDraw(pmodel, GLM_SMOOTH | GLM_MATERIAL | GLM_TEXTURE);
+
     glPopMatrix();
     
 }
@@ -307,14 +326,20 @@ void desenhaAngVisao(Camera *cam)
 
 void desenhaModelo()
 {
-    glColor3f(0,1,0);
+    glDisable(GL_TEXTURE_2D);
+    /* glColor3f(0,1,0); */
+    GLfloat cor_verde[] = {0.0, 1.0, 0.0, 1.0};
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cor_verde);
     glutSolidCube(OBJETO_ALTURA);
     glPushMatrix();
-        glColor3f(1,0,0);
+        /* glColor3f(1,0,0); */
+        GLfloat cor_vermelha[] = {1.0, 0.0, 0.0, 1.0};
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cor_vermelha);
         glTranslatef(0,OBJETO_ALTURA*0.75,0);
-        glRotatef(GRAUS(estado.camera.dir_long-modelo.objeto.dir),0,1,0);
+        /* glRotatef(GRAUS(estado.camera.dir_long-modelo.objeto.dir),0,1,0); */
         glutSolidCube(OBJETO_ALTURA*0.5);
     glPopMatrix();
+    glEnable(GL_TEXTURE_2D);
 }
 
 void desenhaChao(GLfloat dimensao, GLuint texID)
@@ -325,7 +350,7 @@ void desenhaChao(GLfloat dimensao, GLuint texID)
     glColor3f(0.5f,0.5f,0.5f);
     for(i=-dimensao;i<=dimensao;i+=STEP)
     {
-      for(j=-dimensao;j<=dimensao;j+=STEP)
+      for(j=-dimensao;j<=dimensao*2;j+=STEP)
       {
           glBegin(GL_POLYGON);
               glNormal3f(0,1,0);
@@ -399,7 +424,7 @@ void displayNavigateSubwindow()
 	glLoadIdentity();
 
 	setNavigateSubwindowCamera(&estado.camera, modelo.objeto);
-  //setLight();
+  setLight();
 
 	glCallList(modelo.mapa[JANELA_NAVIGATE]);
 	glCallList(modelo.chao[JANELA_NAVIGATE]);
@@ -407,8 +432,7 @@ void displayNavigateSubwindow()
 	if(!estado.vista[JANELA_NAVIGATE])
   {
     glPushMatrix();
-        glTranslatef(modelo.objeto.pos.x,modelo.objeto.pos.y+0.3,modelo.objeto.pos.z);
-        glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+        glTranslatef(0,0.3,0);
         glRotatef(90,0,1,0);
         
         glEnable(GL_LIGHTING);
@@ -416,8 +440,25 @@ void displayNavigateSubwindow()
           GLfloat light_pos[] = { 0.0, 2.0, -1.0, 0.0 };
           glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
 
-          /* desenhaModelo();   */
-          drawmodel();
+          desenhaModelo();  
+
+        glPopMatrix();      
+        
+        glDisable(GL_LIGHTING);
+        
+    glPopMatrix();
+
+    glPushMatrix();
+        glTranslatef(modelo.objeto.pos.x,modelo.objeto.pos.y+0.3,modelo.objeto.pos.z);
+        glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+        glRotatef(90,0,1,0);
+        
+        glEnable(GL_LIGHTING);
+        glPushMatrix();
+          /* GLfloat light_pos[] = { 0.0, 2.0, -1.0, 0.0 }; */
+          glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+
+          drawmodel(modelo.texID[JANELA_NAVIGATE]);
 
         glPopMatrix();      
         
@@ -528,7 +569,6 @@ void timer(int value)
       modelo.objeto.pos.x += 5;
       estado.teclas.left = GL_FALSE;
     }
-    printf("POSICAO = ", modelo.objeto.pos.x, "\n");
     /* modelo.objeto.dir += OBJETO_ROTACAO;
     estado.camera.dir_long = modelo.objeto.dir; */
   }
@@ -538,7 +578,6 @@ void timer(int value)
       modelo.objeto.pos.x -= 5;
       estado.teclas.right = GL_FALSE;
     }
-    printf("POSICAO = ", modelo.objeto.pos.x, "\n");
     /* modelo.objeto.dir -= OBJETO_ROTACAO;
     estado.camera.dir_long = modelo.objeto.dir; */
 	}
@@ -736,8 +775,8 @@ void specialKeyUp(int key, int x, int y)
 
 void createTextures(GLuint texID[])
 {
-    unsigned char *image = NULL;
-    int w, h, bpp;
+    unsigned char *image, *sonic, *sonic2, *sonic3, *sonic4 = NULL;
+    int w, h, bpp, ws, hs, ws2, hs2, ws3, hs3, ws4, hs4;
 
     glGenTextures(NUM_TEXTURAS,texID);
 
@@ -753,6 +792,58 @@ void createTextures(GLuint texID[])
         gluBuild2DMipmaps(GL_TEXTURE_2D, 3, w, h, GL_RGB, GL_UNSIGNED_BYTE, image);
     }else{
         printf("Textura %s não encontrada \n",NOME_TEXTURA_CHAO);
+        exit(0);
+    }
+
+    sonic = glmReadPPM(NOME_TEXTURA_SONIC, &ws, &hs);
+    if(sonic)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST );
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, ws, hs, GL_RGB, GL_UNSIGNED_BYTE, sonic);
+    }else{
+        printf("Textura %s não encontrada \n",NOME_TEXTURA_SONIC);
+        exit(0);
+    }
+
+    sonic2 = glmReadPPM(NOME_TEXTURA_SONIC2, &ws2, &hs2);
+    if(sonic2)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC2]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST );
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, ws2, hs2, GL_RGB, GL_UNSIGNED_BYTE, sonic2);
+    }else{
+        printf("Textura %s não encontrada \n",NOME_TEXTURA_SONIC2);
+        exit(0);
+    }
+
+    sonic3 = glmReadPPM(NOME_TEXTURA_SONIC3, &ws3, &hs3);
+    if(sonic3)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC3]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST );
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, ws3, hs3, GL_RGB, GL_UNSIGNED_BYTE, sonic3);
+    }else{
+        printf("Textura %s não encontrada \n",NOME_TEXTURA_SONIC3);
+        exit(0);
+    }
+
+    sonic4 = glmReadPPM(NOME_TEXTURA_SONIC4, &ws4, &hs4);
+    if(sonic4)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC4]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST );
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, ws4, hs4, GL_RGB, GL_UNSIGNED_BYTE, sonic4);
+    }else{
+        printf("Textura %s não encontrada \n",NOME_TEXTURA_SONIC4);
         exit(0);
     }
 
