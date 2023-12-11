@@ -114,6 +114,9 @@ Modelo modelo;
 GLMmodel* pmodel = NULL;
 GLboolean world_draw = GL_TRUE;
 
+/* int numGrounds = 3; */
+int maxZ = 10;
+int minZ = -10;
 
 
 
@@ -128,16 +131,17 @@ drawmodel(GLuint texID[])
     }
     
     glPushMatrix();
+
         glTranslatef(0,OBJETO_ALTURA*1.20,0);
-        glRotatef(270+GRAUS(estado.camera.dir_long-modelo.objeto.dir),0,1,0);
+        glRotatef(270+GRAUS(estado.camera.dir_long),0,1,0);
 
         GLfloat cor_branco[] = {1.0, 1.0, 1.0, 1.0};
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cor_branco);
         /* glColor3f(1, 1, 1); */
 
-        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC]);
+        /* glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC]);
         glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC2]);
-        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC3]);
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC3]); */
         glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC4]);
 
         glmDraw(pmodel, GLM_SMOOTH | GLM_MATERIAL | GLM_TEXTURE);
@@ -350,7 +354,7 @@ void desenhaChao(GLfloat dimensao, GLuint texID)
     glColor3f(0.5f,0.5f,0.5f);
     for(i=-dimensao;i<=dimensao;i+=STEP)
     {
-      for(j=-dimensao;j<=dimensao*2;j+=STEP)
+      for(j=-dimensao;j<=dimensao;j+=STEP)
       {
           glBegin(GL_POLYGON);
               glNormal3f(0,1,0);
@@ -418,7 +422,7 @@ void setNavigateSubwindowCamera(Camera *cam, Objeto obj)
 
 void displayNavigateSubwindow()
 {
-  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+  glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	glLoadIdentity();
@@ -426,8 +430,28 @@ void displayNavigateSubwindow()
 	setNavigateSubwindowCamera(&estado.camera, modelo.objeto);
   setLight();
 
-	glCallList(modelo.mapa[JANELA_NAVIGATE]);
-	glCallList(modelo.chao[JANELA_NAVIGATE]);
+	/* glCallList(modelo.mapa[JANELA_NAVIGATE]);
+	glCallList(modelo.chao[JANELA_NAVIGATE]); */
+
+   /* for(int i = 0; i < 3; i++){
+        glPushMatrix();		
+            glTranslatef(0,0,-CHAO_DIMENSAO+(CHAO_DIMENSAO*i));
+            glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+            glRotatef(90,0,1,0);
+            desenhaChao(CHAO_DIMENSAO,modelo.texID[JANELA_TOP][ID_TEXTURA_CHAO]);
+            
+        glPopMatrix();
+    } */
+
+    for(int i = 0; i < 4; i++){
+        glPushMatrix();		
+            glTranslatef(0,0,minZ-CHAO_DIMENSAO+(CHAO_DIMENSAO*i));
+            glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+            glRotatef(90,0,1,0);
+            desenhaChao(CHAO_DIMENSAO,modelo.texID[JANELA_TOP][ID_TEXTURA_CHAO]);
+            
+        glPopMatrix();
+    }
 
 	if(!estado.vista[JANELA_NAVIGATE])
   {
@@ -486,22 +510,42 @@ void setTopSubwindowCamera(Camera *cam, Objeto obj)
 
 void displayTopSubwindow()
 {
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
     glLoadIdentity();
     setTopSubwindowCamera(&estado.camera,modelo.objeto);
     setLight();
 
-	glCallList(modelo.mapa[JANELA_TOP]);
+/* 	glCallList(modelo.mapa[JANELA_TOP]);
 	glCallList(modelo.chao[JANELA_TOP]);
 	
     glPushMatrix();		
-        glTranslatef(modelo.objeto.pos.x,modelo.objeto.pos.y,modelo.objeto.pos.z);
+        glTranslatef(0,0,0);
         glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
         glRotatef(90,0,1,0);
         
-    glPopMatrix();
+    glPopMatrix(); */
+
+    /* for(int i = 0; i < numGrounds; i++){
+        glPushMatrix();		
+            glTranslatef(0,0,-CHAO_DIMENSAO+(CHAO_DIMENSAO*i));
+            glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+            glRotatef(90,0,1,0);
+            desenhaChao(CHAO_DIMENSAO,modelo.texID[JANELA_TOP][ID_TEXTURA_CHAO]);
+            
+        glPopMatrix();
+    } */
+
+    
+    for(int i = 0; i < 4; i++){
+        glPushMatrix();		
+            glTranslatef(0,0,minZ-CHAO_DIMENSAO+(CHAO_DIMENSAO*i));
+            glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+            glRotatef(90,0,1,0);
+            desenhaChao(CHAO_DIMENSAO,modelo.texID[JANELA_TOP][ID_TEXTURA_CHAO]);
+        glPopMatrix();
+    }
 
 	desenhaAngVisao(&estado.camera);
 	
@@ -559,8 +603,10 @@ void timer(int value)
 
   if (estado.teclas.down)
   {
-    modelo.objeto.pos.z -= velocidade/*  * cos(RAD(estado.camera.dir_long)) */;
-    /* modelo.objeto.pos.x -= velocidade * sin(RAD(estado.camera.dir_long)); */
+    if(modelo.objeto.pos.z > -5){
+      modelo.objeto.pos.z -= velocidade/*  * cos(RAD(estado.camera.dir_long)) */;
+      /* modelo.objeto.pos.x -= velocidade * sin(RAD(estado.camera.dir_long)); */
+    }
   }
 	
   if(estado.teclas.left){
@@ -592,6 +638,18 @@ void timer(int value)
     /* modelo.objeto.dir -= OBJETO_ROTACAO; */
     estado.camera.dir_long -= velocidadeCamara * EYE_ROTACAO;
 	}
+
+  if(((int)(modelo.objeto.pos.z) % 10 == 0) && (int)(modelo.objeto.pos.z) >= maxZ){
+    /* numGrounds++; */
+    maxZ += CHAO_DIMENSAO;
+    minZ += CHAO_DIMENSAO;
+  }
+
+  if(((int)(modelo.objeto.pos.z) % 10 == 0) && (int)(modelo.objeto.pos.z) <= minZ){
+    /* numGrounds++; */
+    minZ -= CHAO_DIMENSAO;
+    maxZ -= CHAO_DIMENSAO;
+  }
 
   redisplayAll();
 }
