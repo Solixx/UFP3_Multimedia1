@@ -133,7 +133,7 @@ drawmodel(GLuint texID[])
     glPushMatrix();
 
         glTranslatef(0,OBJETO_ALTURA*1.20,0);
-        glRotatef(270+GRAUS(estado.camera.dir_long),0,1,0);
+        glRotatef(270+GRAUS(modelo.objeto.dir),0,1,0);
 
         GLfloat cor_branco[] = {1.0, 1.0, 1.0, 1.0};
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cor_branco);
@@ -315,7 +315,7 @@ void desenhaAngVisao(Camera *cam)
     glPushMatrix();
         glTranslatef(cam->eye.x,OBJETO_ALTURA,cam->eye.z);
         glColor4f(0,0,1,0.2);
-        glRotatef(GRAUS(cam->dir_long),0,1,0);
+        glRotatef(270+GRAUS(cam->dir_long),0,1,0);
 
         glBegin(GL_TRIANGLES);
             glVertex3f(0,0,0);
@@ -332,13 +332,27 @@ void desenhaModelo()
 {
     glDisable(GL_TEXTURE_2D);
     /* glColor3f(0,1,0); */
-    GLfloat cor_verde[] = {0.0, 1.0, 0.0, 1.0};
-    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cor_verde);
+    /* GLfloat cor_verde[] = {0.0, 1.0, 0.0, 1.0}; */
+    GLfloat no_mat[] = {0.0, 0.0, 0.0, 1.0};
+    GLfloat mat_ambient[] = {0.7, 0.7, 0.7, 1.0};
+    GLfloat mat_ambient_color[] = {0.8, 0.8, 0.2, 1.0};
+    GLfloat mat_diffuse[] = {0.1, 0.5, 0.8, 1.0};
+    GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat no_shininess[] = {0.0};
+    GLfloat low_shininess[] = {5.0};
+    GLfloat high_shininess[] = {100.0};
+    GLfloat mat_emission[] = {0.3, 0.2, 0.2, 0.0};
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, no_mat);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+        glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
+        glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
     glutSolidCube(OBJETO_ALTURA);
     glPushMatrix();
         /* glColor3f(1,0,0); */
-        GLfloat cor_vermelha[] = {1.0, 0.0, 0.0, 1.0};
-        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cor_vermelha);
+        GLfloat cor_D_vermelha[] = {1.0, 0.0, 0.0, 1.0};
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, cor_D_vermelha);
         glTranslatef(0,OBJETO_ALTURA*0.75,0);
         /* glRotatef(GRAUS(estado.camera.dir_long-modelo.objeto.dir),0,1,0); */
         glutSolidCube(OBJETO_ALTURA*0.5);
@@ -446,7 +460,7 @@ void displayNavigateSubwindow()
     for(int i = 0; i < 4; i++){
         glPushMatrix();		
             glTranslatef(0,0,minZ-CHAO_DIMENSAO+(CHAO_DIMENSAO*i));
-            glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+            glRotatef(/* GRAUS(modelo.objeto.dir) */0,0,1,0);
             glRotatef(90,0,1,0);
             desenhaChao(CHAO_DIMENSAO,modelo.texID[JANELA_TOP][ID_TEXTURA_CHAO]);
             
@@ -455,40 +469,34 @@ void displayNavigateSubwindow()
 
 	if(!estado.vista[JANELA_NAVIGATE])
   {
-    glPushMatrix();
-        glTranslatef(0,0.3,0);
-        glRotatef(90,0,1,0);
-        
-        glEnable(GL_LIGHTING);
-        glPushMatrix();
-          GLfloat light_pos[] = { 0.0, 2.0, -1.0, 0.0 };
-          glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+    glEnable(GL_LIGHTING);
+      glPushMatrix();
+          glTranslatef(0,0.3,0);
+          glRotatef(90,0,1,0);
+          
+          glPushMatrix();
+            /* GLfloat light_pos[] = { 0.0, 2.0, -1.0, 0.0 };
+            glLightfv(GL_LIGHT0, GL_POSITION, light_pos); */
 
-          desenhaModelo();  
+            desenhaModelo();  
 
-        glPopMatrix();      
-        
-        glDisable(GL_LIGHTING);
-        
-    glPopMatrix();
+          glPopMatrix();      
+          
+      glPopMatrix();
 
-    glPushMatrix();
-        glTranslatef(modelo.objeto.pos.x,modelo.objeto.pos.y+0.3,modelo.objeto.pos.z);
-        glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
-        glRotatef(90,0,1,0);
-        
-        glEnable(GL_LIGHTING);
-        glPushMatrix();
-          /* GLfloat light_pos[] = { 0.0, 2.0, -1.0, 0.0 }; */
-          glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+      glPushMatrix();
+          glTranslatef(modelo.objeto.pos.x,modelo.objeto.pos.y+0.3,modelo.objeto.pos.z);
+          /* glRotatef(GRAUS(modelo.objeto.dir)0,0,1,0); */
+          glRotatef(90,0,1,0);
+          
+          glPushMatrix();
 
-          drawmodel(modelo.texID[JANELA_NAVIGATE]);
+            drawmodel(modelo.texID[JANELA_NAVIGATE]);
 
-        glPopMatrix();      
-        
-        glDisable(GL_LIGHTING);
-        
-    glPopMatrix();
+          glPopMatrix();     
+          
+      glPopMatrix();
+    glDisable(GL_LIGHTING);
   }
 
 	glutSwapBuffers();
@@ -541,7 +549,7 @@ void displayTopSubwindow()
     for(int i = 0; i < 4; i++){
         glPushMatrix();		
             glTranslatef(0,0,minZ-CHAO_DIMENSAO+(CHAO_DIMENSAO*i));
-            glRotatef(GRAUS(modelo.objeto.dir),0,1,0);
+            glRotatef(/* GRAUS(modelo.objeto.dir) */0,0,1,0);
             glRotatef(90,0,1,0);
             desenhaChao(CHAO_DIMENSAO,modelo.texID[JANELA_TOP][ID_TEXTURA_CHAO]);
         glPopMatrix();
@@ -595,10 +603,17 @@ void timer(int value)
 
   modelo.prev = curr;
 
+  printf("%f\n", GRAUS(modelo.objeto.dir));
+
+  if(GRAUS(modelo.objeto.dir) >= 360 || GRAUS(modelo.objeto.dir) <= -360) {
+    estado.camera.dir_long = 0;
+    modelo.objeto.dir = 0;
+  }
+
   if (estado.teclas.up)
   {
-    modelo.objeto.pos.z += velocidade/*  * cos(RAD(estado.camera.dir_long)) */;
-    /* modelo.objeto.pos.x += velocidade * sin(RAD(estado.camera.dir_long)); */
+      modelo.objeto.pos.z += velocidade /* * cos(RAD(estado.camera.dir_long)) */;
+      /* modelo.objeto.pos.x += velocidade * sin(RAD(estado.camera.dir_long)); */
   }
 
   if (estado.teclas.down)
@@ -630,13 +645,13 @@ void timer(int value)
 
   if(estado.teclas.moveCamaraLeft){
     // rodar camara e objeto
-    /* modelo.objeto.dir += OBJETO_ROTACAO; */
     estado.camera.dir_long += velocidadeCamara * EYE_ROTACAO;
+    modelo.objeto.dir =  estado.camera.dir_long;
   }
 	if(estado.teclas.moveCamaraRight){
     // rodar camara e objeto
-    /* modelo.objeto.dir -= OBJETO_ROTACAO; */
     estado.camera.dir_long -= velocidadeCamara * EYE_ROTACAO;
+    modelo.objeto.dir =  estado.camera.dir_long;
 	}
 
   if(((int)(modelo.objeto.pos.z) % 10 == 0) && (int)(modelo.objeto.pos.z) >= maxZ){
