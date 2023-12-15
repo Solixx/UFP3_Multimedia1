@@ -612,15 +612,23 @@ void timer(int value)
 
   if (estado.teclas.up)
   {
-      modelo.objeto.pos.z += velocidade /* * cos(RAD(estado.camera.dir_long)) */;
-      /* modelo.objeto.pos.x += velocidade * sin(RAD(estado.camera.dir_long)); */
+    if((GRAUS(modelo.objeto.dir) >= 90 && GRAUS(modelo.objeto.dir) <= 270) || (GRAUS(modelo.objeto.dir) <= -90 && GRAUS(modelo.objeto.dir) >= -270)){
+      if(modelo.objeto.pos.z > -5){
+        modelo.objeto.pos.z -= velocidade;
+      }
+    } else{
+      modelo.objeto.pos.z += velocidade;
+    }
   }
 
   if (estado.teclas.down)
   {
-    if(modelo.objeto.pos.z > -5){
-      modelo.objeto.pos.z -= velocidade/*  * cos(RAD(estado.camera.dir_long)) */;
-      /* modelo.objeto.pos.x -= velocidade * sin(RAD(estado.camera.dir_long)); */
+    if((GRAUS(modelo.objeto.dir) >= 90 && GRAUS(modelo.objeto.dir) <= 270) || (GRAUS(modelo.objeto.dir) <= -90 && GRAUS(modelo.objeto.dir) >= -270)){
+        modelo.objeto.pos.z += velocidade;
+    } else{
+      if(modelo.objeto.pos.z > -5){
+        modelo.objeto.pos.z -= velocidade;
+      }
     }
   }
 	
@@ -951,7 +959,7 @@ int main(int argc, char **argv)
   // criar a sub window topSubwindow
   estado.topSubwindow = glutCreateSubWindow(estado.mainWindow, GAP, GAP, 400, 400);
   init();
-  setLight();
+  //setLight();
   setMaterial();
   createTextures(modelo.texID[JANELA_TOP]);
   createDisplayLists(JANELA_TOP);
@@ -968,7 +976,7 @@ int main(int argc, char **argv)
   // criar a sub window navigateSubwindow
   estado.navigateSubwindow = glutCreateSubWindow(estado.mainWindow, 400 + GAP, GAP, 400, 800);
   init();
-  setLight();
+  //setLight();
   setMaterial();
 
   createTextures(modelo.texID[JANELA_NAVIGATE]);
