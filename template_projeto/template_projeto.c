@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
@@ -47,6 +47,9 @@
 #define NOME_TEXTURA_SONIC4         "data/sonic-hd/source/sonic-fbx/sonic_body_texture_by_tomothys_d5hhp2h-pre.ppm"
 
 #define NUM_TEXTURAS              5
+#define NUM_RINGS                 20
+#define NUM_OBSTACULOS            10
+
 #define ID_TEXTURA_CHAO           0
 #define ID_TEXTURA_SONIC           1
 #define ID_TEXTURA_SONIC2           2
@@ -108,47 +111,111 @@ typedef struct {
     GLuint        prev;
 } Modelo;
 
+typedef struct {
+  Posicao pos;
+} Ring;
+
+typedef struct {
+  GLfloat innerRaius;
+  GLfloat outerRadius;
+  GLuint slices;
+  GLuint loops;
+  GLfloat dir; 
+  Ring ring[NUM_RINGS];
+} Rings;
+
 Estado estado;
 Modelo modelo;
+Rings rings;
 
 GLMmodel* pmodel = NULL;
 GLboolean world_draw = GL_TRUE;
 
+/* Variaveis globais */
 /* int numGrounds = 3; */
 int maxZ = 10;
 int minZ = -10;
+int ringCatchs = 0;
 
+int win_width = 800;  // Largura da janela
+int win_height = 600; //altura da janela
 
+/* Arrais Globais */
+GLint ringsVisible[NUM_RINGS];
 
-drawmodel(GLuint texID[])
-{
-    if (!pmodel) {
-        pmodel = glmReadOBJ("data/sonic-hd/source/sonic-fbx/sonic.obj");
-        if (!pmodel) exit(0);
-        glmUnitize(pmodel);
-        glmFacetNormals(pmodel);
-        glmVertexNormals(pmodel, 90.0);
-    }
-    
-    glPushMatrix();
+/* Default Materials */
+GLfloat no_mat[] = {0.0, 0.0, 0.0, 1.0};
+GLfloat mat_ambient[] = {0.7, 0.7, 0.7, 1.0};
+GLfloat mat_ambient_color[] = {0.8, 0.8, 0.2, 1.0};
+GLfloat mat_diffuse[] = {0.1, 0.1, 0.1, 1.0};
+GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
+GLfloat no_shininess[] = {0.0};
+GLfloat low_shininess[] = {5.0};
+GLfloat high_shininess[] = {100.0};
+GLfloat mat_emission[] = {0.3, 0.2, 0.2, 0.0};
 
-        glTranslatef(0,OBJETO_ALTURA*1.20,0);
-        glRotatef(270+GRAUS(modelo.objeto.dir),0,1,0);
-
-        GLfloat cor_branco[] = {1.0, 1.0, 1.0, 1.0};
-        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cor_branco);
-        /* glColor3f(1, 1, 1); */
-
-        /* glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC]);
-        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC2]);
-        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC3]); */
-        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC4]);
-
-        glmDraw(pmodel, GLM_SMOOTH | GLM_MATERIAL | GLM_TEXTURE);
-
-    glPopMatrix();
-    
+/**************************************
+******* FUNÇÕES NECEESÁRIAS ***********
+**************************************/
+void startRingsVisibleArray(){
+  for(int i = 0; i < NUM_RINGS; i++){
+    ringsVisible[i] = 1;
+  }
 }
+
+void pointsText(){
+  glDisable(GL_TEXTURE_2D);
+    glDisable(GL_LIGHTING);
+
+    glColor3d(1.0, 1.0, 1.0);
+    
+    // Configura a matriz de projeção
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity(); // Carrega a matriz identidade
+    gluOrtho2D(0.0, win_width, 0.0, win_height); // Define projeção ortográfica 2D (para que independentemente da distancia o texto fique igual sem mudança de tamanho)
+
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity(); // Carrega a matriz identidade
+    // Calcular a posição para o canto superior direito
+    int textWidth = glutBitmapLength(GLUT_BITMAP_TIMES_ROMAN_24, (unsigned char *)"0123456789");
+    int textHeight = 24; // Altura do texto (GLUT_BITMAP_TIMES_ROMAN_24)
+
+    int xPos = win_width - textWidth + 25; // 10 pixels de margem
+    int yPos = win_height - textHeight - 10; // 10 pixels de margem
+
+    glRasterPos2i(xPos, yPos);
+
+    char numberStr[20];
+    sprintf(numberStr, "%d", ringCatchs);
+
+    void* font = GLUT_BITMAP_TIMES_ROMAN_24;
+
+    for (const char* i = numberStr; *i != '\0'; ++i) {
+        char c = *i;
+        glutBitmapCharacter(font, c); // Renderiza o caratere
+    }
+
+    // Restaura a matriz antes de escrever o texto
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_LIGHTING);
+}
+
+/* Renderiza os pontos que vão aparecer na tela */
+/* void renderPontos(float x, float y, void *font, const char *string){
+  glRasterPos2f(x, y);
+
+  for (size_t i = 0; i < strlen(string); i++) {
+      glutBitmapCharacter(font, string[i]);
+  }
+} */
 
 /**************************************
 ******* ILUMINAÇÃO E MATERIAIS ********
@@ -173,16 +240,24 @@ void setLight()
 
 void setMaterial()
 {
-  GLfloat mat_specular[] = {0.8f, 0.8f, 0.8f, 1.0f};
-  GLfloat mat_shininess = 104;
+  /* GLfloat mat_specular[] = {0.8f, 0.8f, 0.8f, 1.0f};
+  GLfloat mat_shininess = 104; */
 
   // Criação automática das componentes Ambiente e Difusa do material a partir das cores
   glEnable(GL_COLOR_MATERIAL);
   glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 
   // Definir de outros parâmetros dos materiais estáticamente
+  glMaterialfv(GL_FRONT, GL_AMBIENT, no_mat);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
   glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-  glMaterialf(GL_FRONT, GL_SHININESS, mat_shininess);
+  glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
+  glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
+  
+  /* glMaterialfv(GL_FRONT, GL_AMBIENT, no_mat);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+  glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+  glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess); */
 }
 
 /**************************************
@@ -215,6 +290,13 @@ void init(void)
 
   modelo.xMouse = modelo.yMouse = -1;
   modelo.andar = GL_FALSE;
+
+  rings.innerRaius = 0.1; //0.275
+  rings.outerRadius = 0.3; //0.85
+  rings.slices = 20;
+  rings.loops = 20;
+  rings.dir = 0;
+
 
   glEnable(GL_DEPTH_TEST);
   glShadeModel(GL_SMOOTH);
@@ -304,6 +386,75 @@ void strokeCenterString(char *str,double x, double y, double z, double s)
 
 }
 
+void drawRing(int index){
+  if(ringsVisible[index] == 1){
+    if(modelo.objeto.pos.z >= fabs(rings.ring[index].pos.z) && modelo.objeto.pos.z <= fabs(rings.ring[index].pos.z)+((rings.innerRaius+rings.outerRadius)*2) && modelo.objeto.pos.x == rings.ring[index].pos.x){
+      ringsVisible[index] = 0;  
+      ringCatchs++;
+    }
+
+    glDisable(GL_TEXTURE_2D);
+      GLfloat this_ambiente[] = {0.85, 0.65, 0.17, 1.0};
+    GLfloat this_diffuse[] = {1.0, 0.84, 0.0, 1.0};
+
+      glMaterialfv(GL_FRONT, GL_AMBIENT, this_diffuse);
+      glMaterialfv(GL_FRONT, GL_DIFFUSE, this_diffuse);
+      glPushMatrix();
+        glRotatef(GRAUS(rings.dir),0,1,0);
+        glutSolidTorus(rings.innerRaius, rings.outerRadius, rings.slices, rings.loops);
+      glPopMatrix();
+    glEnable(GL_TEXTURE_2D);
+  }
+}
+
+
+void drawmodel(GLuint texID[])
+{
+    if (!pmodel) {
+        pmodel = glmReadOBJ("data/sonic-hd/source/sonic-fbx/sonic.obj");
+        if (!pmodel) exit(0);
+        glmUnitize(pmodel);
+        glmFacetNormals(pmodel);
+        glmVertexNormals(pmodel, 90.0);
+    }
+    
+    glPushMatrix();
+
+        glTranslatef(0,OBJETO_ALTURA*1.20,0);
+        glRotatef(270+GRAUS(modelo.objeto.dir),0,1,0);
+
+        GLfloat cor_branco[] = {1.0, 1.0, 1.0, 1.0};
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cor_branco);
+        /* glColor3f(1, 1, 1);
+
+        /* glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC]);
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC2]);
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC3]); */
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC4]);
+
+        glmDraw(pmodel, GLM_SMOOTH | GLM_MATERIAL | GLM_TEXTURE);
+
+    glPopMatrix();
+}
+
+void desenhaModelo()
+{
+    glDisable(GL_TEXTURE_2D);
+    GLfloat this_diffuse[] = {0.1, 0.5, 0.8, 1.0};
+
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, this_diffuse);
+    glutSolidCube(OBJETO_ALTURA);
+    glPushMatrix();
+        /* glColor3f(1,0,0); */
+        GLfloat cor_D_vermelha[] = {1.0, 0.0, 0.0, 1.0};
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, cor_D_vermelha);
+        glTranslatef(0,OBJETO_ALTURA*0.75,0);
+        /* glRotatef(GRAUS(estado.camera.dir_long-modelo.objeto.dir),0,1,0); */
+        glutSolidCube(OBJETO_ALTURA*0.5);
+    glPopMatrix();
+    glEnable(GL_TEXTURE_2D);
+}
+
 void desenhaAngVisao(Camera *cam)
 {
     GLfloat ratio;
@@ -326,38 +477,6 @@ void desenhaAngVisao(Camera *cam)
 
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
-}
-
-void desenhaModelo()
-{
-    glDisable(GL_TEXTURE_2D);
-    /* glColor3f(0,1,0); */
-    /* GLfloat cor_verde[] = {0.0, 1.0, 0.0, 1.0}; */
-    GLfloat no_mat[] = {0.0, 0.0, 0.0, 1.0};
-    GLfloat mat_ambient[] = {0.7, 0.7, 0.7, 1.0};
-    GLfloat mat_ambient_color[] = {0.8, 0.8, 0.2, 1.0};
-    GLfloat mat_diffuse[] = {0.1, 0.5, 0.8, 1.0};
-    GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
-    GLfloat no_shininess[] = {0.0};
-    GLfloat low_shininess[] = {5.0};
-    GLfloat high_shininess[] = {100.0};
-    GLfloat mat_emission[] = {0.3, 0.2, 0.2, 0.0};
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT, no_mat);
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-        glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-        glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
-        glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
-    glutSolidCube(OBJETO_ALTURA);
-    glPushMatrix();
-        /* glColor3f(1,0,0); */
-        GLfloat cor_D_vermelha[] = {1.0, 0.0, 0.0, 1.0};
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, cor_D_vermelha);
-        glTranslatef(0,OBJETO_ALTURA*0.75,0);
-        /* glRotatef(GRAUS(estado.camera.dir_long-modelo.objeto.dir),0,1,0); */
-        glutSolidCube(OBJETO_ALTURA*0.5);
-    glPopMatrix();
-    glEnable(GL_TEXTURE_2D);
 }
 
 void desenhaChao(GLfloat dimensao, GLuint texID)
@@ -480,8 +599,26 @@ void displayNavigateSubwindow()
 
             desenhaModelo();  
 
-          glPopMatrix();      
-          
+          glPopMatrix();  
+          glPushMatrix();
+            /* GLfloat light_pos[] = { 0.0, 2.0, -1.0, 0.0 };
+            glLightfv(GL_LIGHT0, GL_POSITION, light_pos); */
+
+            glTranslatef(0,0.7,0);
+            glRotatef(90,0,1,0);
+
+            for(int i = 0; i < NUM_RINGS; i++){
+                glPushMatrix();
+                  rings.ring[i].pos.x = 0;
+                  rings.ring[i].pos.y = 0;
+                  rings.ring[i].pos.z = -10-(i+5);
+
+                  glTranslatef(rings.ring[i].pos.x,rings.ring[i].pos.y,rings.ring[i].pos.z); 	  
+                  drawRing(i);   
+                glPopMatrix();
+            }
+
+          glPopMatrix();    
       glPopMatrix();
 
       glPushMatrix();
@@ -490,16 +627,17 @@ void displayNavigateSubwindow()
           glRotatef(90,0,1,0);
           
           glPushMatrix();
-
+            
             drawmodel(modelo.texID[JANELA_NAVIGATE]);
 
           glPopMatrix();     
           
       glPopMatrix();
     glDisable(GL_LIGHTING);
-  }
 
-	glutSwapBuffers();
+    pointsText();
+  }
+    glutSwapBuffers();
 }
 
 
@@ -603,8 +741,6 @@ void timer(int value)
 
   modelo.prev = curr;
 
-  printf("%f\n", GRAUS(modelo.objeto.dir));
-
   if(GRAUS(modelo.objeto.dir) >= 360 || GRAUS(modelo.objeto.dir) <= -360) {
     estado.camera.dir_long = 0;
     modelo.objeto.dir = 0;
@@ -673,6 +809,8 @@ void timer(int value)
     minZ -= CHAO_DIMENSAO;
     maxZ -= CHAO_DIMENSAO;
   }
+
+  rings.dir += velocidadeCamara;
 
   redisplayAll();
 }
@@ -936,6 +1074,7 @@ void createTextures(GLuint texID[])
 
 int main(int argc, char **argv)
 {
+  startRingsVisibleArray();
   glutInit(&argc, argv);
   glutInitWindowPosition(10, 10);
   glutInitWindowSize(800 + GAP * 3, 400 + GAP * 2);
