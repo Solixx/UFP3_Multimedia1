@@ -174,9 +174,13 @@ GLboolean world_draw = GL_TRUE;
 
 /* Variaveis globais */
 /* int numGrounds = 3; */
+float maxSonicZ = 0;
 int maxZ = 10;
 int minZ = -10;
 int ringCatchs = 0;
+GLfloat obtaculo_dir = 0;
+int obstaculos[NUM_OBSTACULOS][2];
+int lastZObstaculo = 0;
 
 int win_width = 800;  // Largura da janela
 int win_height = 600; //altura da janela
@@ -201,6 +205,13 @@ GLfloat mat_emission[] = {0.3, 0.2, 0.2, 0.0};
 void startRingsVisibleArray(){
   for(int i = 0; i < NUM_RINGS; i++){
     ringsVisible[i] = 1;
+  }
+}
+
+void startObstaculos(){
+  for(int i = 0; i < NUM_OBSTACULOS; i++){
+    obstaculos[i][0] = 0;
+    obstaculos[i][1] = 0;
   }
 }
 
@@ -429,7 +440,7 @@ void strokeCenterString(char *str,double x, double y, double z, double s)
 
 void drawRing(int index){
   glDisable(GL_TEXTURE_2D);
-  if(ringsVisible[index] == 1){
+  if(ringsVisible[index] == 1 && obstaculos[index][1] > 0) {
     if(modelo.objeto.pos.z >= rings.ring[index].pos.z && modelo.objeto.pos.z <= rings.ring[index].pos.z+((rings.innerRaius+rings.outerRadius)*2) && modelo.objeto.pos.x == rings.ring[index].pos.x){
       ringsVisible[index] = 0;  
       ringCatchs++;
@@ -441,6 +452,7 @@ void drawRing(int index){
       glMaterialfv(GL_FRONT, GL_AMBIENT, this_ambiente);
       glMaterialfv(GL_FRONT, GL_DIFFUSE, this_diffuse);
       glPushMatrix();
+        glTranslatef(rings.ring[index].pos.x,rings.ring[index].pos.y,rings.ring[index].pos.z); 	  
         glRotatef(GRAUS(rings.dir),0,1,0);
         glutSolidTorus(rings.innerRaius, rings.outerRadius, rings.slices, rings.loops);
       glPopMatrix();
@@ -517,10 +529,37 @@ void createSolidCube(float totalSize){
     glEnd();
 }
 
+void drawObstaculo(GLuint texID[], int i){
+  if(obstaculos[i][1] <= 0 || ringCatchs == NUM_OBSTACULOS)  return;
+  if(modelo.objeto.pos.z >= obstaculos[i][1] && modelo.objeto.pos.z <= obstaculos[i][1]+(BOSS_MAQUINA_CIRCULO_RAIO*2) && modelo.objeto.pos.x == obstaculos[i][0]){
+    modelo.objeto.pos.x = 0;
+    modelo.objeto.pos.z = 0;
+    lastZObstaculo = 0;
+    maxSonicZ = 0;
+    ringCatchs = 0;
+    startRingsVisibleArray();
+    startObstaculos();
+  }
+  glPushMatrix();
+      glPushMatrix();
+          GLUquadric* quad = gluNewQuadric();
+          gluQuadricTexture(quad, GL_TRUE);
+      glPopMatrix();
+      glPushMatrix();
+          glEnable(GL_TEXTURE_2D);
+          glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS2]);
+          glTranslatef(obstaculos[i][0], BOSS_MAQUINA_CIRCULO_Y, obstaculos[i][1]);
+          glRotatef(GRAUS(obtaculo_dir),1,0,0);
+          gluSphere(quad, BOSS_MAQUINA_CIRCULO_RAIO, BOSS_MAQUINA_CIRCULO_SLICES-12, BOSS_MAQUINA_CIRCULO_STACKS);
+          glDisable(GL_TEXTURE_2D);
+      glPopMatrix();
+  glPopMatrix();
+}
+
+
 void drawBoss(GLuint texID[])
 {
- 
-  if(ringCatchs == NUM_RINGS){
+    if(ringCatchs == NUM_OBSTACULOS) return;
     glEnable(GL_TEXTURE_2D);
 
     /* glDisable(GL_TEXTURE_2D); */
@@ -532,7 +571,7 @@ void drawBoss(GLuint texID[])
     glMaterialfv(GL_FRONT, GL_DIFFUSE, this_diffuse);
 
     glPushMatrix();
-      glTranslatef(modelo.objeto.pos.x, 0, modelo.objeto.pos.z+BOSS_DISTANCIA_Z);
+      glTranslatef(modelo.objeto.pos.x, 0, maxSonicZ+BOSS_DISTANCIA_Z);
       glRotatef(BOSS_ROTATE_X,1,0,0);
       glPushMatrix();
           GLUquadric* quad = gluNewQuadric();
@@ -625,7 +664,6 @@ void drawBoss(GLuint texID[])
 
     /* glEnable(GL_TEXTURE_2D); */
     glDisable(GL_TEXTURE_2D);
-  }
 }
 
 void desenhaModelo()
@@ -790,9 +828,9 @@ void displayNavigateSubwindow()
             desenhaModelo();  
 
           glPopMatrix();  
-          glPushMatrix();
-            /* GLfloat light_pos[] = { 0.0, 2.0, -1.0, 0.0 };
-            glLightfv(GL_LIGHT0, GL_POSITION, light_pos); */
+          /* glPushMatrix();
+            GLfloat light_pos[] = { 0.0, 2.0, -1.0, 0.0 };
+            glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
 
             glTranslatef(0,0.7,0);
 
@@ -807,10 +845,28 @@ void displayNavigateSubwindow()
                 glPopMatrix();
             }
 
-          glPopMatrix(); 
+          glPopMatrix();  */
 
           glPushMatrix();
             drawBoss(modelo.texID[JANELA_NAVIGATE]);
+
+            for(int i = 0; i < NUM_OBSTACULOS; i++){
+              if(ringCatchs == NUM_OBSTACULOS) break;
+              if(obstaculos[i][1] <= 0 && (((int)maxSonicZ)+20)%10 == 0 &&  (((int)maxSonicZ)+20) > lastZObstaculo){
+                obstaculos[i][0] = modelo.objeto.pos.x;
+                obstaculos[i][1] = maxSonicZ+20;
+
+                if(modelo.objeto.pos.x == 0)  rings.ring[i].pos.x = 5;
+                else if(modelo.objeto.pos.x == 5) rings.ring[i].pos.x = -5;
+                else  rings.ring[i].pos.x = 0;
+                rings.ring[i].pos.y = 0.7;
+                rings.ring[i].pos.z = maxSonicZ+20;
+
+                lastZObstaculo = maxSonicZ+20;
+              }
+              drawObstaculo(modelo.texID[JANELA_NAVIGATE], i);
+              drawRing(i); 
+            }
           glPopMatrix();   
       glPopMatrix();
 
@@ -1004,7 +1060,12 @@ void timer(int value)
     maxZ -= CHAO_DIMENSAO;
   }
 
+  if(modelo.objeto.pos.z > maxSonicZ){
+    maxSonicZ = modelo.objeto.pos.z;
+  }
+
   rings.dir += velocidadeCamara;
+  obtaculo_dir -= velocidadeCamara;
 
   redisplayAll();
 }
@@ -1333,6 +1394,7 @@ void createTextures(GLuint texID[])
 int main(int argc, char **argv)
 {
   startRingsVisibleArray();
+  startObstaculos();
   glutInit(&argc, argv);
   glutInitWindowPosition(10, 10);
   glutInitWindowSize(800 + GAP * 3, 400 + GAP * 2);
