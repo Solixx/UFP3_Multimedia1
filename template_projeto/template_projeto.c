@@ -45,8 +45,13 @@
 #define NOME_TEXTURA_SONIC2         "data/sonic-hd/source/sonic-fbx/d636zef-7c753c88-4923-47fd-91b2-3d953ffca2ab.ppm"
 #define NOME_TEXTURA_SONIC3         "data/sonic-hd/source/sonic-fbx/offical_sonic_the_hedgehog_eye_texture_by_jaysonjeanchannel_d9fz1q0-pre.ppm"
 #define NOME_TEXTURA_SONIC4         "data/sonic-hd/source/sonic-fbx/sonic_body_texture_by_tomothys_d5hhp2h-pre.ppm"
+#define NOME_TEXTURA_BOSS         "data/boss/metal.ppm"
+#define NOME_TEXTURA_BOSS2         "data/boss/black-metal-texture-t2.ppm"
+#define NOME_TEXTURA_BOSS3         "data/boss/bodyeggman-transformed-_1_.ppm"
+#define NOME_TEXTURA_BOSS4         "data/boss/headeggman.ppm"
+#define NOME_TEXTURA_BOSS5        "data/boss/red4.ppm"
 
-#define NUM_TEXTURAS              5
+#define NUM_TEXTURAS              10
 #define NUM_RINGS                 20
 #define NUM_OBSTACULOS            10
 
@@ -55,6 +60,11 @@
 #define ID_TEXTURA_SONIC2           2
 #define ID_TEXTURA_SONIC3           3
 #define ID_TEXTURA_SONIC4           4
+#define ID_TEXTURA_BOSS           5
+#define ID_TEXTURA_BOSS2           6
+#define ID_TEXTURA_BOSS3           7
+#define ID_TEXTURA_BOSS4           8
+#define ID_TEXTURA_BOSS5           9
 
 #define	CHAO_DIMENSAO		          10
 
@@ -63,6 +73,37 @@
 #define JANELA_NAVIGATE           1
 
 #define STEP                      1
+
+/* Defines Boss */
+#define BOSS_DISTANCIA_Z 20
+#define BOSS_ROTATE_X -5
+#define BOSS_MAQUINA_CIRCULO_RAIO 0.8
+#define BOSS_MAQUINA_CIRCULO_SLICES 20
+#define BOSS_MAQUINA_CIRCULO_STACKS 20
+#define BOSS_MAQUINA_CILINDRO_RAIO 1
+#define BOSS_MAQUINA_COLINDRO_SLICES 20
+#define BOSS_MAQUINA_CILINDRO_STACKS 20
+#define BOSS_MAQUINA_CILINDRO_ALTURA 1
+#define BOSS_MAQUINA_CILINDRO_Y 2
+#define BOSS_MAQUINA_CIRCULO_Y 1.2
+#define BOSS_CORPO_Y 1.7
+#define BOSS_CORPO_RAIO 0.8
+#define BOSS_CORPO_SLICES 20
+#define BOSS_CORPO_STACKS 20
+#define BOSS_CABECA_Y 2.7
+#define BOSS_CABECA_RAIO 0.4
+#define BOSS_CABECA_SLICES 20
+#define BOSS_CABECA_STACKS 20
+#define BOSS_FOGUETES_CUBO_X 1.0
+#define BOSS_FOGUETES_CUBO_Y 1.5
+#define BOSS_FOGUETES_CUBO_TAMANHO 0.5
+#define BOSS_FOGUETES_Y 1.5
+#define BOSS_FOGUETES_Z -1
+#define BOSS_FOGUETE_RAIO 0.35
+#define BOSS_FIGUETE_ALTURA 1.5
+#define BOSS_FOGUETE_SLICES 20
+#define BOSS_FOGUETE_STACKS 20
+#define BOSS_FOGUETE_CIRCULO_RAIO 0.35
 
 /**************************************
 ********** VARIÁVEIS GLOBAIS **********
@@ -133,9 +174,13 @@ GLboolean world_draw = GL_TRUE;
 
 /* Variaveis globais */
 /* int numGrounds = 3; */
+float maxSonicZ = 0;
 int maxZ = 10;
 int minZ = -10;
 int ringCatchs = 0;
+GLfloat obtaculo_dir = 0;
+int obstaculos[NUM_OBSTACULOS][2];
+int lastZObstaculo = 0;
 
 int win_width = 800;  // Largura da janela
 int win_height = 600; //altura da janela
@@ -160,6 +205,13 @@ GLfloat mat_emission[] = {0.3, 0.2, 0.2, 0.0};
 void startRingsVisibleArray(){
   for(int i = 0; i < NUM_RINGS; i++){
     ringsVisible[i] = 1;
+  }
+}
+
+void startObstaculos(){
+  for(int i = 0; i < NUM_OBSTACULOS; i++){
+    obstaculos[i][0] = 0;
+    obstaculos[i][1] = 0;
   }
 }
 
@@ -387,29 +439,31 @@ void strokeCenterString(char *str,double x, double y, double z, double s)
 }
 
 void drawRing(int index){
-  if(ringsVisible[index] == 1){
-    if(modelo.objeto.pos.z >= fabs(rings.ring[index].pos.z) && modelo.objeto.pos.z <= fabs(rings.ring[index].pos.z)+((rings.innerRaius+rings.outerRadius)*2) && modelo.objeto.pos.x == rings.ring[index].pos.x){
+  glDisable(GL_TEXTURE_2D);
+  if(ringsVisible[index] == 1 && obstaculos[index][1] > 0) {
+    if(modelo.objeto.pos.z >= rings.ring[index].pos.z && modelo.objeto.pos.z <= rings.ring[index].pos.z+((rings.innerRaius+rings.outerRadius)*2) && modelo.objeto.pos.x == rings.ring[index].pos.x){
       ringsVisible[index] = 0;  
       ringCatchs++;
     }
 
-    glDisable(GL_TEXTURE_2D);
       GLfloat this_ambiente[] = {0.85, 0.65, 0.17, 1.0};
     GLfloat this_diffuse[] = {1.0, 0.84, 0.0, 1.0};
 
-      glMaterialfv(GL_FRONT, GL_AMBIENT, this_diffuse);
+      glMaterialfv(GL_FRONT, GL_AMBIENT, this_ambiente);
       glMaterialfv(GL_FRONT, GL_DIFFUSE, this_diffuse);
       glPushMatrix();
+        glTranslatef(rings.ring[index].pos.x,rings.ring[index].pos.y,rings.ring[index].pos.z); 	  
         glRotatef(GRAUS(rings.dir),0,1,0);
         glutSolidTorus(rings.innerRaius, rings.outerRadius, rings.slices, rings.loops);
       glPopMatrix();
-    glEnable(GL_TEXTURE_2D);
   }
+  glEnable(GL_TEXTURE_2D);
 }
 
 
 void drawmodel(GLuint texID[])
 {
+  glEnable(GL_TEXTURE_2D);
     if (!pmodel) {
         pmodel = glmReadOBJ("data/sonic-hd/source/sonic-fbx/sonic.obj");
         if (!pmodel) exit(0);
@@ -424,7 +478,7 @@ void drawmodel(GLuint texID[])
         glRotatef(270+GRAUS(modelo.objeto.dir),0,1,0);
 
         GLfloat cor_branco[] = {1.0, 1.0, 1.0, 1.0};
-        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, cor_branco);
+        glMaterialfv(GL_FRONT, GL_AMBIENT, cor_branco);
         /* glColor3f(1, 1, 1);
 
         /* glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_SONIC]);
@@ -435,6 +489,181 @@ void drawmodel(GLuint texID[])
         glmDraw(pmodel, GLM_SMOOTH | GLM_MATERIAL | GLM_TEXTURE);
 
     glPopMatrix();
+    glDisable(GL_TEXTURE_2D);
+}
+
+void createSolidCube(float totalSize){
+  float size = totalSize / 2; // Half size for convenience
+
+    glBegin(GL_QUADS);
+        // Front Face
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-size, -size,  size);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f( size, -size,  size);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f( size,  size,  size);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(-size,  size,  size);
+        // Back Face
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(-size, -size, -size);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(-size,  size, -size);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f( size,  size, -size);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f( size, -size, -size);
+        // Top Face
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(-size,  size, -size);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-size,  size,  size);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f( size,  size,  size);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f( size,  size, -size);
+        // Bottom Face
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(-size, -size, -size);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f( size, -size, -size);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f( size, -size,  size);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(-size, -size,  size);
+        // Right face
+        glTexCoord2f(1.0f, 0.0f); glVertex3f( size, -size, -size);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f( size,  size, -size);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f( size,  size,  size);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f( size, -size,  size);
+        // Left Face
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-size, -size, -size);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(-size, -size,  size);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(-size,  size,  size);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(-size,  size, -size);
+    glEnd();
+}
+
+void drawObstaculo(GLuint texID[], int i){
+  if(obstaculos[i][1] <= 0 || ringCatchs == NUM_OBSTACULOS)  return;
+  if(modelo.objeto.pos.z >= obstaculos[i][1] && modelo.objeto.pos.z <= obstaculos[i][1]+(BOSS_MAQUINA_CIRCULO_RAIO*2) && modelo.objeto.pos.x == obstaculos[i][0]){
+    modelo.objeto.pos.x = 0;
+    modelo.objeto.pos.z = 0;
+    lastZObstaculo = 0;
+    maxSonicZ = 0;
+    ringCatchs = 0;
+    startRingsVisibleArray();
+    startObstaculos();
+  }
+  glPushMatrix();
+      glPushMatrix();
+          GLUquadric* quad = gluNewQuadric();
+          gluQuadricTexture(quad, GL_TRUE);
+      glPopMatrix();
+      glPushMatrix();
+          glEnable(GL_TEXTURE_2D);
+          glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS2]);
+          glTranslatef(obstaculos[i][0], BOSS_MAQUINA_CIRCULO_Y, obstaculos[i][1]);
+          glRotatef(GRAUS(obtaculo_dir),1,0,0);
+          gluSphere(quad, BOSS_MAQUINA_CIRCULO_RAIO, BOSS_MAQUINA_CIRCULO_SLICES-12, BOSS_MAQUINA_CIRCULO_STACKS);
+          glDisable(GL_TEXTURE_2D);
+      glPopMatrix();
+  glPopMatrix();
+}
+
+
+void drawBoss(GLuint texID[])
+{
+    if(ringCatchs == NUM_OBSTACULOS) return;
+    glEnable(GL_TEXTURE_2D);
+
+    /* glDisable(GL_TEXTURE_2D); */
+
+    GLfloat this_ambiente[] = {0.5, 0.5, 0.5, 1.0};
+    GLfloat this_diffuse[] = {0.7, 0.7, 0.7, 1.0};
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, this_ambiente);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, this_diffuse);
+
+    glPushMatrix();
+      glTranslatef(modelo.objeto.pos.x, 0, maxSonicZ+BOSS_DISTANCIA_Z);
+      glRotatef(BOSS_ROTATE_X,1,0,0);
+      glPushMatrix();
+          GLUquadric* quad = gluNewQuadric();
+          gluQuadricTexture(quad, GL_TRUE);
+      glPopMatrix();
+      // cilindro maquina
+      glPushMatrix();
+          glEnable(GL_TEXTURE_2D);
+          glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS]);
+          glTranslatef(0, BOSS_MAQUINA_CILINDRO_Y, 0);
+          glRotatef(90,1,0,0); 
+          gluCylinder(quad, BOSS_MAQUINA_CILINDRO_RAIO, BOSS_MAQUINA_CILINDRO_RAIO, BOSS_MAQUINA_CILINDRO_ALTURA, BOSS_MAQUINA_COLINDRO_SLICES, BOSS_MAQUINA_CILINDRO_STACKS);
+          glDisable(GL_TEXTURE_2D);
+      glPopMatrix();
+      // base circulo maquina
+      glPushMatrix();
+          glEnable(GL_TEXTURE_2D);
+          glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS2]);
+          glTranslatef(0, BOSS_MAQUINA_CIRCULO_Y, 0);
+          gluSphere(quad, BOSS_MAQUINA_CIRCULO_RAIO, BOSS_MAQUINA_CIRCULO_SLICES, BOSS_MAQUINA_CIRCULO_STACKS);
+          glDisable(GL_TEXTURE_2D);
+      glPopMatrix();
+      // corpo eggman
+      glPushMatrix();
+          glEnable(GL_TEXTURE_2D);
+          glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS3]);
+          glTranslatef(0, BOSS_CORPO_Y, 0);
+          gluSphere(quad, BOSS_CORPO_RAIO, BOSS_CORPO_SLICES, BOSS_CORPO_STACKS);
+          glDisable(GL_TEXTURE_2D);
+      glPopMatrix();
+      // cabeca eggman
+      glPushMatrix();
+          glEnable(GL_TEXTURE_2D);
+          glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS4]);
+          glTranslatef(0, BOSS_CABECA_Y, 0);
+          gluSphere(quad, BOSS_CABECA_RAIO, BOSS_CABECA_SLICES, BOSS_CABECA_STACKS);
+          glDisable(GL_TEXTURE_2D);
+      glPopMatrix();
+        glPushMatrix();
+        // foguetes esquerda
+        glPushMatrix();
+          glPushMatrix();
+              glEnable(GL_TEXTURE_2D);
+              glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS]);
+              glTranslatef(BOSS_FOGUETES_CUBO_X, BOSS_FOGUETES_CUBO_Y, 0);
+              createSolidCube(BOSS_FOGUETES_CUBO_TAMANHO);  // Função que cria um cubo (nao uso a solidCube pois não dá para colocar textura então criei a minha)
+              glDisable(GL_TEXTURE_2D);
+          glPopMatrix();
+          glPushMatrix();
+            glEnable(GL_TEXTURE_2D);
+            glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS]);
+            glTranslatef(BOSS_FOGUETES_Y, BOSS_FOGUETES_Y, BOSS_FOGUETES_Z);
+            glRotatef(90,0,0,1); 
+            gluCylinder(quad, BOSS_FOGUETE_RAIO, BOSS_FOGUETE_RAIO, BOSS_FIGUETE_ALTURA, BOSS_FOGUETE_SLICES, BOSS_FOGUETE_STACKS);
+            glPushMatrix();
+              glRotatef(90,1,0,0);
+              glRotatef(90,0,1,0);
+              glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS5]);
+              gluSphere(quad, BOSS_FOGUETE_CIRCULO_RAIO, BOSS_FOGUETE_SLICES, BOSS_FOGUETE_STACKS);
+            glPopMatrix();
+            glDisable(GL_TEXTURE_2D);
+          glPopMatrix();
+        glPopMatrix();
+        // foguetes direita
+        glPushMatrix();
+          glPushMatrix();
+              glEnable(GL_TEXTURE_2D);
+              glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS]);
+              glTranslatef(-BOSS_FOGUETES_CUBO_X, BOSS_FOGUETES_CUBO_Y, 0);
+              createSolidCube(BOSS_FOGUETES_CUBO_TAMANHO);  // Função que cria um cubo (nao uso a solidCube pois não dá para colocar textura então criei a minha)
+              glDisable(GL_TEXTURE_2D);
+          glPopMatrix();
+          glPushMatrix();
+            glEnable(GL_TEXTURE_2D);
+            glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS]);
+            glTranslatef(-BOSS_FOGUETES_Y, BOSS_FOGUETES_Y, BOSS_FOGUETES_Z);
+            glRotatef(90,0,0,1); 
+            gluCylinder(quad, BOSS_FOGUETE_RAIO, BOSS_FOGUETE_RAIO, BOSS_FIGUETE_ALTURA, BOSS_FOGUETE_SLICES, BOSS_FOGUETE_STACKS);
+            glPushMatrix();
+              glRotatef(90,1,0,0);
+              glRotatef(90,0,1,0);
+              glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS5]);
+              gluSphere(quad, BOSS_FOGUETE_CIRCULO_RAIO, BOSS_FOGUETE_SLICES, BOSS_FOGUETE_STACKS);
+            glPopMatrix();
+            glDisable(GL_TEXTURE_2D);
+          glPopMatrix();
+        glPopMatrix();
+      glPopMatrix();
+    glPopMatrix();
+
+    /* glEnable(GL_TEXTURE_2D); */
+    glDisable(GL_TEXTURE_2D);
 }
 
 void desenhaModelo()
@@ -591,7 +820,6 @@ void displayNavigateSubwindow()
     glEnable(GL_LIGHTING);
       glPushMatrix();
           glTranslatef(0,0.3,0);
-          glRotatef(90,0,1,0);
           
           glPushMatrix();
             /* GLfloat light_pos[] = { 0.0, 2.0, -1.0, 0.0 };
@@ -600,25 +828,46 @@ void displayNavigateSubwindow()
             desenhaModelo();  
 
           glPopMatrix();  
-          glPushMatrix();
-            /* GLfloat light_pos[] = { 0.0, 2.0, -1.0, 0.0 };
-            glLightfv(GL_LIGHT0, GL_POSITION, light_pos); */
+          /* glPushMatrix();
+            GLfloat light_pos[] = { 0.0, 2.0, -1.0, 0.0 };
+            glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
 
             glTranslatef(0,0.7,0);
-            glRotatef(90,0,1,0);
 
             for(int i = 0; i < NUM_RINGS; i++){
                 glPushMatrix();
                   rings.ring[i].pos.x = 0;
                   rings.ring[i].pos.y = 0;
-                  rings.ring[i].pos.z = -10-(i+5);
+                  rings.ring[i].pos.z = 10+(i+5);
 
                   glTranslatef(rings.ring[i].pos.x,rings.ring[i].pos.y,rings.ring[i].pos.z); 	  
                   drawRing(i);   
                 glPopMatrix();
             }
 
-          glPopMatrix();    
+          glPopMatrix();  */
+
+          glPushMatrix();
+            drawBoss(modelo.texID[JANELA_NAVIGATE]);
+
+            for(int i = 0; i < NUM_OBSTACULOS; i++){
+              if(ringCatchs == NUM_OBSTACULOS) break;
+              if(obstaculos[i][1] <= 0 && (((int)maxSonicZ)+20)%10 == 0 &&  (((int)maxSonicZ)+20) > lastZObstaculo){
+                obstaculos[i][0] = modelo.objeto.pos.x;
+                obstaculos[i][1] = maxSonicZ+20;
+
+                if(modelo.objeto.pos.x == 0)  rings.ring[i].pos.x = 5;
+                else if(modelo.objeto.pos.x == 5) rings.ring[i].pos.x = -5;
+                else  rings.ring[i].pos.x = 0;
+                rings.ring[i].pos.y = 0.7;
+                rings.ring[i].pos.z = maxSonicZ+20;
+
+                lastZObstaculo = maxSonicZ+20;
+              }
+              drawObstaculo(modelo.texID[JANELA_NAVIGATE], i);
+              drawRing(i); 
+            }
+          glPopMatrix();   
       glPopMatrix();
 
       glPushMatrix();
@@ -636,6 +885,7 @@ void displayNavigateSubwindow()
     glDisable(GL_LIGHTING);
 
     pointsText();
+    glEnable(GL_TEXTURE_2D);
   }
     glutSwapBuffers();
 }
@@ -810,7 +1060,12 @@ void timer(int value)
     maxZ -= CHAO_DIMENSAO;
   }
 
+  if(modelo.objeto.pos.z > maxSonicZ){
+    maxSonicZ = modelo.objeto.pos.z;
+  }
+
   rings.dir += velocidadeCamara;
+  obtaculo_dir -= velocidadeCamara;
 
   redisplayAll();
 }
@@ -994,8 +1249,8 @@ void specialKeyUp(int key, int x, int y)
 
 void createTextures(GLuint texID[])
 {
-    unsigned char *image, *sonic, *sonic2, *sonic3, *sonic4 = NULL;
-    int w, h, bpp, ws, hs, ws2, hs2, ws3, hs3, ws4, hs4;
+    unsigned char *image, *sonic, *sonic2, *sonic3, *sonic4, *boss, *boss2, *boss3, *boss4, *boss5 = NULL;
+    int w, h, bpp, ws, hs, ws2, hs2, ws3, hs3, ws4, hs4, w5, h5, w6, h6, w7, h7, w8, h8, w9, h9;
 
     glGenTextures(NUM_TEXTURAS,texID);
 
@@ -1066,6 +1321,70 @@ void createTextures(GLuint texID[])
         exit(0);
     }
 
+    boss = glmReadPPM(NOME_TEXTURA_BOSS, &w5, &h5);
+    if(boss)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST );
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, w5, h5, GL_RGB, GL_UNSIGNED_BYTE, boss);
+    }else{
+        printf("Textura %s não encontrada \n",NOME_TEXTURA_BOSS);
+        exit(0);
+    }
+
+    boss2 = glmReadPPM(NOME_TEXTURA_BOSS2, &w6, &h6);
+    if(boss2)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS2]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST );
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, w6, h6, GL_RGB, GL_UNSIGNED_BYTE, boss2);
+    }else{
+        printf("Textura %s não encontrada \n",NOME_TEXTURA_BOSS2);
+        exit(0);
+    }
+
+    boss3 = glmReadPPM(NOME_TEXTURA_BOSS3, &w7, &h7);
+    if(boss3)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS3]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST );
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, w7, h7, GL_RGB, GL_UNSIGNED_BYTE, boss3);
+    }else{
+        printf("Textura %s não encontrada \n",NOME_TEXTURA_BOSS3);
+        exit(0);
+    }
+
+    boss4 = glmReadPPM(NOME_TEXTURA_BOSS4, &w8, &h8);
+    if(boss4)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS4]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST );
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, w8, h8, GL_RGB, GL_UNSIGNED_BYTE, boss4);
+    }else{
+        printf("Textura %s não encontrada \n",NOME_TEXTURA_BOSS4);
+        exit(0);
+    }
+
+    boss5 = glmReadPPM(NOME_TEXTURA_BOSS5, &w9, &h9);
+    if(boss5)
+    {
+        glBindTexture(GL_TEXTURE_2D, texID[ID_TEXTURA_BOSS5]);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST );
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, 3, w9, h9, GL_RGB, GL_UNSIGNED_BYTE, boss5);
+    }else{
+        printf("Textura %s não encontrada \n",NOME_TEXTURA_BOSS5);
+        exit(0);
+    }
 }
 
 /**************************************
@@ -1075,6 +1394,7 @@ void createTextures(GLuint texID[])
 int main(int argc, char **argv)
 {
   startRingsVisibleArray();
+  startObstaculos();
   glutInit(&argc, argv);
   glutInitWindowPosition(10, 10);
   glutInitWindowSize(800 + GAP * 3, 400 + GAP * 2);
