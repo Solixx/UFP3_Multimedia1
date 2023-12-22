@@ -181,6 +181,7 @@ int ringCatchs = 0;
 GLfloat obtaculo_dir = 0;
 int obstaculos[NUM_OBSTACULOS][2];
 int lastZObstaculo = 0;
+GLboolean firstPerson = GL_TRUE; 
 
 int win_width = 800;  // Largura da janela
 int win_height = 600; //altura da janela
@@ -757,14 +758,28 @@ void setNavigateSubwindowCamera(Camera *cam, Objeto obj)
     {
   */
 
-    cam->eye.x = obj.pos.x - 1.5 * sin(cam->dir_long);
-    cam->eye.y = obj.pos.y + 2.5;
-    cam->eye.z = obj.pos.z - 3 * cos(cam->dir_long);
+    if(firstPerson){
+      cam->eye.x = obj.pos.x /*  * sin(cam->dir_long) */;
+      cam->eye.y = obj.pos.y + 1.5;
+      cam->eye.z = obj.pos.z + 1.5 /*  * cos(cam->dir_long) */;
 
-    center.x = obj.pos.x;
-    center.y = obj.pos.y + 1;
-    center.z = obj.pos.z;
+      center.x = obj.pos.x/*  + 1.5 * sin(cam->dir_long) */;
+      center.y = obj.pos.y + 1.5;
+      center.z = obj.pos.z + 3 /* + 1.5 * cos(cam->dir_long) */;
+    }
+    else{
+      cam->eye.x = obj.pos.x - 1.5 * sin(cam->dir_long);
+      cam->eye.y = obj.pos.y + 2.5;
+      cam->eye.z = obj.pos.z - 3 * cos(cam->dir_long);
 
+      center.x = obj.pos.x;
+      center.y = obj.pos.y + 1;
+      center.z = obj.pos.z;
+    }
+
+    
+
+    
     /* cam->eye.x=obj.pos.x-1;
     cam->eye.y=obj.pos.y+.2;
     cam->eye.z=obj.pos.z-1;
@@ -805,7 +820,7 @@ void displayNavigateSubwindow()
         glPopMatrix();
     } */
 
-    for(int i = 0; i < 4; i++){
+    for(int i = 0; i < 8; i++){
         glPushMatrix();		
             glTranslatef(0,0,minZ-CHAO_DIMENSAO+(CHAO_DIMENSAO*i));
             glRotatef(/* GRAUS(modelo.objeto.dir) */0,0,1,0);
@@ -934,7 +949,7 @@ void displayTopSubwindow()
     } */
 
     
-    for(int i = 0; i < 4; i++){
+    for(int i = 0; i < 8; i++){
         glPushMatrix();		
             glTranslatef(0,0,minZ-CHAO_DIMENSAO+(CHAO_DIMENSAO*i));
             glRotatef(/* GRAUS(modelo.objeto.dir) */0,0,1,0);
@@ -1138,6 +1153,11 @@ void key(unsigned char key, int x, int y)
     case 'd':
     case 'D':
             estado.teclas.moveCamaraRight = GL_TRUE;
+            break;
+    case 'z':
+    case 'Z':
+      printf("jdnwndkjan");
+            firstPerson != firstPerson;
             break;
 	}
 
