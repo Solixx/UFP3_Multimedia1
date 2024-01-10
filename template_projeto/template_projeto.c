@@ -181,7 +181,7 @@ int ringCatchs = 0;
 GLfloat obtaculo_dir = 0;
 int obstaculos[NUM_OBSTACULOS][2];
 int lastZObstaculo = 0;
-GLboolean firstPerson = GL_TRUE; 
+GLboolean firstPerson = GL_FALSE; 
 
 int win_width = 800;  // Largura da janela
 int win_height = 600; //altura da janela
